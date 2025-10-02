@@ -40,21 +40,24 @@
 		<thead>
 			<tr>
 				<th class="sorter" data-field="datetime">Date/Time</th>
-				<th>
-					<div class="navbar-item has-dropdown is-hoverable">
-						<%=  %>
-						<% if (pagination && pagination.level != null) { %>
-							<span>Start Level:</span>
-						<% } else { %>
-							<span>Start Level</span>
-						<% } %>
-						<select id="level_select" class="navbar-item">
-							<option value=null <%=pagination.level == null ? "selected" : ''%>>-</option>
-							<% for (let i = 0; i < 30; i++) { %>
-								<option value="<%= i %>" <%= pagination.level == i ? "selected" : ''%>><%= i %></option>
+				<th data-field="level">
+					<nav class="navbar" role="navigation">
+						<div class="navbar-item has-dropdown is-hoverable">
+							<span class="navbar-link"> 
+							<% if (pagination && pagination.level != null) { %>
+								<span>Start Level (<%= pagination.level %>)</span>
+							<% } else { %>
+								<span>Start Level</span>
 							<% } %>
-						</select>
-					</div>
+							</span>
+							<div class="navbar-dropdown">
+								<a class="navbar-item">all</a>
+								<% for (let i = 0; i < 30; i++) { %>
+									<a class="navbar-item"><%= i %></a>
+								<% } %>
+							</div>
+						</div>
+					</nav>
 				</th>
 				<th>End Level</th>
 				<th class="sorter" data-field="score">Score</th>
@@ -323,7 +326,11 @@
 		const url = new URL(location);
 
 		for (const [key, value] of Object.entries(pagination)) {
-			url.searchParams.set(key, value);
+			if (value === null) {
+				url.searchParams.delete(key);
+			} else {
+				url.searchParams.set(key, value);
+			}
 		}
 
 		location.href = url.toString();
@@ -339,14 +346,21 @@
 		console.log(err);
 	}
 
-	const level_select = document.querySelector("#level_select");
 
-	level_select.addEventListener("change", evt => {
-		if (!isNaN(level_select.value)) {
-			pagination.level = level_select.value;
+	const level_select = document.querySelector(`th[data-field='level']`);
+
+	level_select.addEventListener("click", evt => {
+		evt.preventDefault();
+		evt.stopPropagation();
+
+		if (!evt.target.matches('a')) return;
+
+		if (evt.target.textContent === 'all') {
+			pagination.level = null;
 		} else {
-			pagination.level = null
+			pagination.level = parseInt(evt.target.textContent, 10);
 		}
+
 		load();
 	})
 

@@ -8,7 +8,7 @@ const MARKUP = html`
 			<button class="button is-success" id="setReady">Set Ready</button>
 			<button class="button is-danger" id="notReady">Not Ready</button>
 		</div>
-		<div id="view" class="is-flex is-justify-content-center"></div>
+		<div id="view"></div>
 	</div>
 `;
 
@@ -105,8 +105,8 @@ export class NTC_Producer_RoomView extends NtcComponent {
 
 		const iFrameStyles = {
 			border: 0,
-			margin: 'auto',
-			transformOrigin: `50% 0`,
+			margin: '0 auto',
+			transformOrigin: `0 0`,
 		};
 
 		this.#roomIFrame = document.createElement('iframe');
@@ -140,11 +140,15 @@ export class NTC_Producer_RoomView extends NtcComponent {
 					: 1920;
 
 		if (this.clientWidth >= size) {
-			if (!this.#roomIFrame.style.transform) return;
 			this.#roomIFrame.style.transform = null;
+			this.#domrefs.view.classList.add('is-flex', 'is-justify-content-center');
 		} else {
 			const scale = this.clientWidth / size;
 			this.#roomIFrame.style.transform = `scale(${scale})`;
+			this.#domrefs.view.classList.remove(
+				'is-flex',
+				'is-justify-content-center'
+			);
 		}
 	};
 
@@ -158,6 +162,7 @@ export class NTC_Producer_RoomView extends NtcComponent {
 
 		let mainViewLayout;
 
+		// initialize with admin params
 		if (this.#view_meta) {
 			mainViewLayout = this.#getLayout(this.#view_meta._layout);
 
@@ -167,8 +172,14 @@ export class NTC_Producer_RoomView extends NtcComponent {
 				.forEach(([key, value]) => searchParams.set(key, value));
 		}
 
+		// check if player has overridden the layout
+		// note that the admin's view settings are still applied, they could have adverse effects
+		// but that's on the user
+		const playerLayout = this.#getLayout(QueryString.get('layout'));
+		if (playerLayout) mainViewLayout = playerLayout;
+
 		const newPathname = producer_url.pathname.replace(
-			/\/producer2?$/,
+			/\/producer2?(\/.*)?$/,
 			`/view/${mainViewLayout || 'ctwc23'}`
 		);
 

@@ -92,6 +92,7 @@ router.get(
 );
 
 // access producer by url secret
+// is this route needed? websocket yes, but producer page?
 router.get(
 	/^\/room\/u\/([^/]+)\/(producer1?|emu)\/([a-zA-Z0-9-]+)/,
 	async (req, res) => {

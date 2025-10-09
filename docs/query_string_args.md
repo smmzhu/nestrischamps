@@ -85,6 +85,12 @@ Caveat: global args apply to **MOST** layouts, but some layouts may not understa
 | `players` | `1-1`: show 1v1<br>`1-2`: show 1v2<br>`2-1`: show 2v1<br>`2-2`: show 2v2 | `2-2` | |
 | `video` | `0`: Remove player cam box<br>`1`: Show video normally | `1` | |
 
+### Pairs
+| Argument  | Possible values | Default | Notes |
+| --- | --- | --- | --- |
+| `pairs` | `2`: show 2 pairs<br>`3`: show 3 pairs<br>`4`: show 4 pairs | `4` | |
+| `rtrt` | `0`: DON'T show Running Tetris Rate graph<br>`1`: Show Running Tetris Rate Graph | `1` | |
+
 ### Boss
 | Argument  | Possible values | Default | Notes |
 | --- | --- | --- | --- |

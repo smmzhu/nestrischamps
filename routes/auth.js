@@ -437,7 +437,7 @@ router.get('/discord/callback', async (req, res) => {
 		res
 			.status(500)
 			.send(
-				`An unexpected error occured with your Twich login: ${err.message}. Please try again later`
+				`An unexpected error occured with your Discord login: ${err.message}. Please try again later.`
 			);
 	}
 });

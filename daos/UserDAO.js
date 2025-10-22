@@ -138,7 +138,31 @@ class UserDAO {
 
 				console.log('creating user');
 				// user is not already mapped, we must create a new user now, and link it to the identity
-				if (options.provider === 'twitch') {
+				if (options.provider === 'google') {
+					// in the case of google, we know the caller has provided a unique login already
+					// so we expect the insertion to just work
+					const res = await dbPool.query(
+						`INSERT INTO users
+						(login, secret, type, description, display_name, profile_image_url)
+						VALUES
+						($1, $2, $3, $4, $5, $6)
+						ON CONFLICT(login) DO NOTHING
+						RETURNING id
+						`,
+						[
+							user_data.login,
+							user_data.secret,
+							user_data.type,
+							user_data.description,
+							user_data.display_name,
+							user_data.profile_image_url,
+						]
+					);
+
+					user_id = res.rows?.[0]?.id;
+				} else {
+					// for twitch and discord, the login/username may already be claimed in the user table
+					// so we try to insert it, and if it fails, we create a random login instead
 					const res = await dbPool.query(
 						`INSERT INTO users
 						(login, secret, type, description, display_name, profile_image_url)
@@ -179,35 +203,13 @@ class UserDAO {
 						);
 
 						user_id = res.rows?.[0]?.id;
-
-						if (!user_id) {
-							throw new Error(
-								`Error: Unable to create twitch user ${user_data.login}`
-							);
-						}
 					}
-				} else if (options.provider === 'google') {
-					// in the case of google, we know the caller has provided a unique login already
-					// so we expect the insertion to just work
-					const res = await dbPool.query(
-						`INSERT INTO users
-						(login, secret, type, description, display_name, profile_image_url)
-						VALUES
-						($1, $2, $3, $4, $5, $6)
-						ON CONFLICT(login) DO NOTHING
-						RETURNING id
-						`,
-						[
-							user_data.login,
-							user_data.secret,
-							user_data.type,
-							user_data.description,
-							user_data.display_name,
-							user_data.profile_image_url,
-						]
-					);
+				}
 
-					user_id = res.rows?.[0]?.id;
+				if (!user_id) {
+					throw new Error(
+						`Error: Unable to create ${options.provider} user ${user_data.login}`
+					);
 				}
 
 				console.log('updating user_identities', [

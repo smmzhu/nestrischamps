@@ -1244,7 +1244,8 @@ export default class Player extends EventTarget {
 
 		if (this.options.sound && clear_evt.cleared) {
 			if (clear_evt.cleared < 4) {
-				this.sounds.clear();
+				// not running this because it's too delayed (only runs AFTER the clear animation) :'(
+				// this.sounds.clear();
 			}
 		}
 

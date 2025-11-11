@@ -543,400 +543,408 @@
 			import InvisibleMixin from '/views/InvisibleMixin.js';
 			import { easeOutElastic, getRandomAngle } from '/js/anim.js';
 
-			if (/^(gold|silver|bronze)$/.test(QueryString.get('bracket'))) {
-				document
-					.querySelector('#stream_bg')
-					.classList.add(QueryString.get('bracket'));
-			}
-
-			const isDAS = QueryString.get('style') === 'das';
-
-			const SHOW_SIMUL_TETRIS = QueryString.get('simultris') !== '0';
-			const SIMUL_TETRIS_DELAY = /^[1-9]\d+$/.test(QueryString.get('simultris'))
-				? parseInt(QueryString.get('simultris'), 10)
-				: 120;
-
-			// supply 0 to disable
-			const CYCLE_TDIFF = /^\d+$/.test(QueryString.get('cycle_tdiff'))
-				? parseInt(QueryString.get('cycle_tdiff'), 10)
-				: 5; // default cycle is 5s
-
-			// triple-typed variable... that is disgusting -_-
-			// false: never show runways (default)
-			// 1 -> true: always show runways
-			// 'transitions' -> 'transitions': show slightly before transitions
-			// x,y -> [x, y]: show runways for x seconds every y seconds
-			let show_runways = false;
-			if (QueryString.get('runways') === '1') {
-				show_runways = true;
-			} else if (QueryString.get('runways') === 'transitions') {
-				show_runways = 'transitions';
-			} else {
-				const m = (QueryString.get('runways') || '').match(
-					/^([1-9]\d*),([1-9]\d*)$/
-				);
-				if (m) {
-					const show_for = parseInt(m[1], 10);
-					const repeat_in = parseInt(m[2], 10);
-					if (show_for < repeat_in) show_runways = [show_for, repeat_in];
+			function run() {
+				if (/^(gold|silver|bronze)$/.test(QueryString.get('bracket'))) {
+					document
+						.querySelector('#stream_bg')
+						.classList.add(QueryString.get('bracket'));
 				}
-			}
 
-			const player_template = document.getElementById('player');
-			const players = [];
+				const isDAS = QueryString.get('style') === 'das';
 
-			[1].forEach(match_num => {
-				const match_node = document.getElementById(`match${match_num}`);
+				const SHOW_SIMUL_TETRIS = QueryString.get('simultris') !== '0';
+				const SIMUL_TETRIS_DELAY = /^[1-9]\d+$/.test(
+					QueryString.get('simultris')
+				)
+					? parseInt(QueryString.get('simultris'), 10)
+					: 120;
 
-				const match_players = [];
-				const sync_timers = [];
+				// supply 0 to disable
+				const CYCLE_TDIFF = /^\d+$/.test(QueryString.get('cycle_tdiff'))
+					? parseInt(QueryString.get('cycle_tdiff'), 10)
+					: 5; // default cycle is 5s
 
-				let runways_interval = null;
-				let runways_timeout = null;
-
-				// function is only used when show_runways is an array
-				const showRunways = () => {
-					runways_timeout = clearTimeout(runways_timeout);
-
-					match_players.forEach(player => {
-						player.dom.runways_box.classList.add('visible');
-					});
-
-					runways_timeout = setTimeout(hideRunways, show_runways[0] * 1000);
-				};
-
-				const hideRunways = () => {
-					match_players.forEach(player => {
-						player.dom.runways_box.classList.remove('visible');
-					});
-				};
-
-				const resetRunways = Array.isArray(show_runways)
-					? (hide = true) => {
-							runways_interval = clearInterval(runways_interval);
-
-							if (hide) hideRunways();
-
-							runways_interval = setInterval(
-								showRunways,
-								show_runways[1] * 1000
-							);
-						}
-					: noop;
-
-				[1, 2].forEach((player_num, player_idx) => {
-					const player_fragment = document.importNode(
-						player_template.content,
-						true
+				// triple-typed variable... that is disgusting -_-
+				// false: never show runways (default)
+				// 1 -> true: always show runways
+				// 'transitions' -> 'transitions': show slightly before transitions
+				// x,y -> [x, y]: show runways for x seconds every y seconds
+				let show_runways = false;
+				if (QueryString.get('runways') === '1') {
+					show_runways = true;
+				} else if (QueryString.get('runways') === 'transitions') {
+					show_runways = 'transitions';
+				} else {
+					const m = (QueryString.get('runways') || '').match(
+						/^([1-9]\d*),([1-9]\d*)$/
 					);
-					const player_node = player_fragment.querySelector('.player');
-
-					player_node.classList.add(`p${player_num}`);
-					match_node.appendChild(player_node);
-
-					const player = new CompetitionPlayer(
-						{
-							name: player_node.querySelector(`.name .header`),
-							score: player_node.querySelector(`.score .value`),
-							level: player_node.querySelector(`.level .content`),
-							lines: player_node.querySelector(`.lines .content`),
-							trt: player_node.querySelector(`.tetris_rate .content`),
-							preview: player_node.querySelector(`.next_piece`),
-							field: player_node.querySelector(`.board`),
-							drought: player_node.querySelector(`.drought .value`),
-
-							runway_lv19: player_node.querySelector(`.runways .value .lv19`),
-							runway_lv29: player_node.querySelector(`.runways .value .lv29`),
-							runway_lv39: player_node.querySelector(`.runways .value .lv39`),
-
-							diff: player_node.querySelector(`.score .diff`),
-							t_diff: player_node.querySelector(`.score .tetris_diff .value`),
-
-							runways_box: player_node.querySelector(`.runways`),
-
-							hearts: player_node.querySelector(`.hearts.box`),
-							drought_box: player_node.querySelector(`.drought`),
-							video: player_node.querySelector(`.player_vid`),
-							score_box: player_node.querySelector(`.score`),
-							name_box: player_node.querySelector(`.name`),
-							seed: player_node.querySelector(`.name .content`),
-
-							curtain: player_node.querySelector(`.custom_curtain`),
-							simul_tetris: player_node.querySelector(`.simul-tetris`),
-						},
-						{
-							biglogo: true,
-							bigntc: true,
-							field_pixel_size: 4.75,
-							running_trt_dot_size: 5,
-							preview_pixel_size: 3.5,
-							format_score: v => readableScoreFomatter(v),
-							stereo: translate([1, 2], [-1, 1], player_num),
-						}
-					);
-
-					if (QueryString.get('invisible') === '1') {
-						InvisibleMixin(player);
+					if (m) {
+						const show_for = parseInt(m[1], 10);
+						const repeat_in = parseInt(m[2], 10);
+						if (show_for < repeat_in) show_runways = [show_for, repeat_in];
 					}
+				}
 
-					if (!CYCLE_TDIFF) {
-						player_node.querySelector(`.score .tetris_diff`)?.remove();
-					}
+				const player_template = document.getElementById('player');
+				const players = [];
 
-					if (show_runways === true) {
-						// permanently visible
-						player.dom.runways_box.classList.add('visible');
-					} else if (Array.isArray(show_runways)) {
-						// visible on interval and on transition
-						player.onTransition = () => {
-							resetRunways(false);
-							showRunways();
-						};
-					}
+				[1].forEach(match_num => {
+					const match_node = document.getElementById(`match${match_num}`);
 
-					if (isDAS) {
-						player.dom.runways_box.classList.add('hide39');
-					}
+					const match_players = [];
+					const sync_timers = [];
 
-					if (show_runways === 'transitions') {
-						player.onLines = frame => {
-							if (player.game.data.start_level !== 18) return; // we only cater for level 18 (for now)
-							if (player.is_chasing_down) return;
-							if (
-								(frame.raw.lines >= 120 && frame.raw.lines < 135) ||
-								(frame.raw.lines >= 220 && frame.raw.lines < 235) ||
-								(frame.raw.lines >= 320 && frame.raw.lines < 335)
-							) {
-								player.dom.runways_box.classList.add('visible');
-							} else {
-								player.dom.runways_box.classList.remove('visible');
+					let runways_interval = null;
+					let runways_timeout = null;
+
+					// function is only used when show_runways is an array
+					const showRunways = () => {
+						runways_timeout = clearTimeout(runways_timeout);
+
+						match_players.forEach(player => {
+							player.dom.runways_box.classList.add('visible');
+						});
+
+						runways_timeout = setTimeout(hideRunways, show_runways[0] * 1000);
+					};
+
+					const hideRunways = () => {
+						match_players.forEach(player => {
+							player.dom.runways_box.classList.remove('visible');
+						});
+					};
+
+					const resetRunways = Array.isArray(show_runways)
+						? (hide = true) => {
+								runways_interval = clearInterval(runways_interval);
+
+								if (hide) hideRunways();
+
+								runways_interval = setInterval(
+									showRunways,
+									show_runways[1] * 1000
+								);
 							}
-						};
-					}
+						: noop;
 
-					if (show_runways) {
-						player.onLevel = frame => {
+					[1, 2].forEach((player_num, player_idx) => {
+						const player_fragment = document.importNode(
+							player_template.content,
+							true
+						);
+						const player_node = player_fragment.querySelector('.player');
+
+						player_node.classList.add(`p${player_num}`);
+						match_node.appendChild(player_node);
+
+						const player = new CompetitionPlayer(
+							{
+								name: player_node.querySelector(`.name .header`),
+								score: player_node.querySelector(`.score .value`),
+								level: player_node.querySelector(`.level .content`),
+								lines: player_node.querySelector(`.lines .content`),
+								trt: player_node.querySelector(`.tetris_rate .content`),
+								preview: player_node.querySelector(`.next_piece`),
+								field: player_node.querySelector(`.board`),
+								drought: player_node.querySelector(`.drought .value`),
+
+								runway_lv19: player_node.querySelector(`.runways .value .lv19`),
+								runway_lv29: player_node.querySelector(`.runways .value .lv29`),
+								runway_lv39: player_node.querySelector(`.runways .value .lv39`),
+
+								diff: player_node.querySelector(`.score .diff`),
+								t_diff: player_node.querySelector(`.score .tetris_diff .value`),
+
+								runways_box: player_node.querySelector(`.runways`),
+
+								hearts: player_node.querySelector(`.hearts.box`),
+								drought_box: player_node.querySelector(`.drought`),
+								video: player_node.querySelector(`.player_vid`),
+								score_box: player_node.querySelector(`.score`),
+								name_box: player_node.querySelector(`.name`),
+								seed: player_node.querySelector(`.name .content`),
+
+								curtain: player_node.querySelector(`.custom_curtain`),
+								simul_tetris: player_node.querySelector(`.simul-tetris`),
+							},
+							{
+								biglogo: true,
+								bigntc: true,
+								field_pixel_size: 4.75,
+								running_trt_dot_size: 5,
+								preview_pixel_size: 3.5,
+								format_score: v => readableScoreFomatter(v),
+								stereo: translate([1, 2], [-1, 1], player_num),
+							}
+						);
+
+						if (QueryString.get('invisible') === '1') {
+							InvisibleMixin(player);
+						}
+
+						if (!CYCLE_TDIFF) {
+							player_node.querySelector(`.score .tetris_diff`)?.remove();
+						}
+
+						if (show_runways === true) {
+							// permanently visible
+							player.dom.runways_box.classList.add('visible');
+						} else if (Array.isArray(show_runways)) {
+							// visible on interval and on transition
+							player.onTransition = () => {
+								resetRunways(false);
+								showRunways();
+							};
+						}
+
+						if (isDAS) {
+							player.dom.runways_box.classList.add('hide39');
+						}
+
+						if (show_runways === 'transitions') {
+							player.onLines = frame => {
+								if (player.game.data.start_level !== 18) return; // we only cater for level 18 (for now)
+								if (player.is_chasing_down) return;
+								if (
+									(frame.raw.lines >= 120 && frame.raw.lines < 135) ||
+									(frame.raw.lines >= 220 && frame.raw.lines < 235) ||
+									(frame.raw.lines >= 320 && frame.raw.lines < 335)
+								) {
+									player.dom.runways_box.classList.add('visible');
+								} else {
+									player.dom.runways_box.classList.remove('visible');
+								}
+							};
+						}
+
+						if (show_runways) {
+							player.onLevel = frame => {
+								[...player.dom.runways_box.querySelectorAll('.active')].forEach(
+									elmt => {
+										elmt.classList.remove('active');
+									}
+								);
+
+								for (const threshold_level of [19, 29, 39]) {
+									if (frame.raw.level < threshold_level) {
+										[
+											...player.dom.runways_box.querySelectorAll(
+												`.lv${threshold_level}`
+											),
+										].forEach(elmt => {
+											elmt.classList.add('active');
+										});
+										break;
+									} else if (frame.raw.level === threshold_level) {
+										player.dom.runways_box.querySelector(
+											`.label .lv${threshold_level}`
+										).textContent = `L${frame.raw.level} SCORE`;
+									}
+								}
+							};
+						}
+
+						player.onDroughtStart = () => {
+							player.dom.drought_box.classList.add('active');
+						};
+
+						player.onDroughtEnd = () => {
+							player.dom.drought_box.classList.remove('active');
+						};
+
+						player.onGameStart = () => {
+							player.is_chasing_down = false;
+							player.dom.drought_box.classList.remove('active');
+
+							if (!show_runways) return;
+
 							[...player.dom.runways_box.querySelectorAll('.active')].forEach(
 								elmt => {
 									elmt.classList.remove('active');
 								}
 							);
 
-							for (const threshold_level of [19, 29, 39]) {
-								if (frame.raw.level < threshold_level) {
-									[
-										...player.dom.runways_box.querySelectorAll(
-											`.lv${threshold_level}`
-										),
-									].forEach(elmt => {
-										elmt.classList.add('active');
-									});
-									break;
-								} else if (frame.raw.level === threshold_level) {
-									player.dom.runways_box.querySelector(
-										`.label .lv${threshold_level}`
-									).textContent = `L${frame.raw.level} SCORE`;
-								}
+							[19, 29, 39].forEach(level => {
+								player.dom.runways_box.querySelector(
+									`.label .lv${level}`
+								).textContent = `L${level} RUNWAY`;
+
+								player.dom.runways_box.querySelector(
+									`.value .lv${level}`
+								).textContent = `0`;
+							});
+
+							const start_level = player.game?.data?.start_level || 18;
+
+							player.dom.runways_box.classList[
+								start_level >= 19 ? 'add' : 'remove'
+							]('hide19');
+
+							if (show_runways === 'transitions') {
+								player.dom.runways_box.classList.remove('visible');
+							} else {
+								resetRunways();
+							}
+
+							if (show_runways === true) {
+								player.dom.runways_box.classList.add('visible');
 							}
 						};
-					}
 
-					player.onDroughtStart = () => {
-						player.dom.drought_box.classList.add('active');
-					};
-
-					player.onDroughtEnd = () => {
-						player.dom.drought_box.classList.remove('active');
-					};
-
-					player.onGameStart = () => {
-						player.is_chasing_down = false;
-						player.dom.drought_box.classList.remove('active');
-
-						if (!show_runways) return;
-
-						[...player.dom.runways_box.querySelectorAll('.active')].forEach(
-							elmt => {
-								elmt.classList.remove('active');
-							}
-						);
-
-						[19, 29, 39].forEach(level => {
-							player.dom.runways_box.querySelector(
-								`.label .lv${level}`
-							).textContent = `L${level} RUNWAY`;
-
-							player.dom.runways_box.querySelector(
-								`.value .lv${level}`
-							).textContent = `0`;
-						});
-
-						const start_level = player.game?.data?.start_level || 18;
-
-						player.dom.runways_box.classList[
-							start_level >= 19 ? 'add' : 'remove'
-						]('hide19');
-
-						if (show_runways === 'transitions') {
-							player.dom.runways_box.classList.remove('visible');
-						} else {
-							resetRunways();
-						}
-
-						if (show_runways === true) {
-							player.dom.runways_box.classList.add('visible');
-						}
-					};
-
-					player.onGameOver = () => {
-						if (show_runways) {
-							const score = player.game.data.score.current;
-							const other_player = match_players.find(
-								_player => _player !== player
-							);
-							if (other_player.game && !other_player.game.over) {
-								const other_player_score = other_player.game.data.score.current;
-								if (other_player_score < score) {
-									other_player.is_chasing_down = true;
-									other_player.dom.runways_box.classList.add('visible');
+						player.onGameOver = () => {
+							if (show_runways) {
+								const score = player.game.data.score.current;
+								const other_player = match_players.find(
+									_player => _player !== player
+								);
+								if (other_player.game && !other_player.game.over) {
+									const other_player_score =
+										other_player.game.data.score.current;
+									if (other_player_score < score) {
+										other_player.is_chasing_down = true;
+										other_player.dom.runways_box.classList.add('visible');
+									}
 								}
 							}
-						}
-						if (show_runways !== true) {
-							player.dom.runways_box.classList.remove('visible');
-						}
-					};
+							if (show_runways !== true) {
+								player.dom.runways_box.classList.remove('visible');
+							}
+						};
 
-					player.onTetris = function () {
-						const now = Date.now();
+						player.onTetris = function () {
+							const now = Date.now();
 
-						player.last_tetris_time = now;
+							player.last_tetris_time = now;
 
-						if (
-							match_players.every(
-								player => player.last_tetris_time >= now - SIMUL_TETRIS_DELAY
-							)
-						) {
-							// clear all ongoing simul-tetris timers for this match
-							while (sync_timers.length) clearTimeout(sync_timers.pop());
+							if (
+								match_players.every(
+									player => player.last_tetris_time >= now - SIMUL_TETRIS_DELAY
+								)
+							) {
+								// clear all ongoing simul-tetris timers for this match
+								while (sync_timers.length) clearTimeout(sync_timers.pop());
 
-							// show the simul-tetris sign
-							const start = Date.now();
-							const scale_start = 0;
-							const duration = 750;
+								// show the simul-tetris sign
+								const start = Date.now();
+								const scale_start = 0;
+								const duration = 750;
 
-							match_players.forEach(player => {
-								if (!SHOW_SIMUL_TETRIS) return;
+								match_players.forEach(player => {
+									if (!SHOW_SIMUL_TETRIS) return;
 
-								window.cancelAnimationFrame(player.animationId);
+									window.cancelAnimationFrame(player.animationId);
 
-								const scale_end = 0.7 + Math.random() * 0.1;
-								const scale_change = scale_end - scale_start;
-								const angle = getRandomAngle(2, 10);
+									const scale_end = 0.7 + Math.random() * 0.1;
+									const scale_change = scale_end - scale_start;
+									const angle = getRandomAngle(2, 10);
 
-								player.dom.simul_tetris.style.display = 'inline';
+									player.dom.simul_tetris.style.display = 'inline';
 
-								const step = () => {
-									const elapsed = Date.now() - start;
-									const scale = easeOutElastic(
-										elapsed,
-										scale_start,
-										scale_change,
-										duration
-									);
-
-									player.dom.simul_tetris.style.transform = `scale(${scale}) rotate(${angle}deg)`;
-
-									if (elapsed < duration) {
-										player.animationId = window.requestAnimationFrame(step);
-									} else {
-										sync_timers.push(
-											setTimeout(() => {
-												player.dom.simul_tetris.style.display = 'none';
-											}, 500)
+									const step = () => {
+										const elapsed = Date.now() - start;
+										const scale = easeOutElastic(
+											elapsed,
+											scale_start,
+											scale_change,
+											duration
 										);
-									}
-								};
 
-								step();
-							});
-						}
-					};
+										player.dom.simul_tetris.style.transform = `scale(${scale}) rotate(${angle}deg)`;
 
-					match_players.push(player);
-					players.push(player);
-				});
-			});
+										if (elapsed < duration) {
+											player.animationId = window.requestAnimationFrame(step);
+										} else {
+											sync_timers.push(
+												setTimeout(() => {
+													player.dom.simul_tetris.style.display = 'none';
+												}, 500)
+											);
+										}
+									};
 
-			if (CYCLE_TDIFF) {
-				setInterval(() => {
-					players.forEach(player => {
-						player.dom.score_box.classList.toggle('with_tdiff');
+									step();
+								});
+							}
+						};
+
+						match_players.push(player);
+						players.push(player);
 					});
-				}, CYCLE_TDIFF * 1000);
+				});
 
-				// player 1 and player 2 will showe the tetris diff at different times
-				players[0].dom.score_box.classList.add('with_tdiff');
-			}
+				if (CYCLE_TDIFF) {
+					setInterval(() => {
+						players.forEach(player => {
+							player.dom.score_box.classList.toggle('with_tdiff');
+						});
+					}, CYCLE_TDIFF * 1000);
 
-			const competition = new Competition(players);
-
-			competition.API._setBestOf = competition.API.setBestOf;
-			competition.API.setBestOf = function (num) {
-				document.querySelector('#stream_bg').classList.remove('bo7');
-
-				if (num === 7) {
-					document.querySelector('#stream_bg').classList.add(`bo${num}`);
+					// player 1 and player 2 will showe the tetris diff at different times
+					players[0].dom.score_box.classList.add('with_tdiff');
 				}
 
-				this._setBestOf(num);
-			};
+				const competition = new Competition(players);
 
-			competition.API.setBestOf(5); // default to Bo5
+				competition.API._setBestOf = competition.API.setBestOf;
+				competition.API.setBestOf = function (num) {
+					document.querySelector('#stream_bg').classList.remove('bo7');
 
-			competition.API.showProfileCard = function (visible, match_idx) {
-				const match_players = players.slice(2 * match_idx, 2 * match_idx + 2);
+					if (num === 7) {
+						document.querySelector('#stream_bg').classList.add(`bo${num}`);
+					}
 
-				match_players.forEach(player => player.showProfileCard(visible));
-			};
-
-			competition.API.setWinner = function (player_idx) {
-				const match_idx = player_idx < 2 ? 0 : 1;
-				const match_players = players.slice(2 * match_idx, 2 * match_idx + 2);
-
-				const winner = players[player_idx];
-				const loser = match_players.find(player => player !== winner);
-
-				loser.showLoserFrame();
-				winner.playWinnerAnimation();
-			};
-
-			for (let player_idx = 0; player_idx < players.length; player_idx += 2) {
-				const match_players = players.slice(player_idx, player_idx + 2);
-
-				const updateMatchStats = () => {
-					competition.computeScoreDifferentials(match_players);
+					this._setBestOf(num);
 				};
 
-				match_players.forEach(player => {
-					player.onScore = updateMatchStats;
-				});
+				competition.API.setBestOf(5); // default to Bo5
+
+				competition.API.showProfileCard = function (visible, match_idx) {
+					const match_players = players.slice(2 * match_idx, 2 * match_idx + 2);
+
+					match_players.forEach(player => player.showProfileCard(visible));
+				};
+
+				competition.API.setWinner = function (player_idx) {
+					const match_idx = player_idx < 2 ? 0 : 1;
+					const match_players = players.slice(2 * match_idx, 2 * match_idx + 2);
+
+					const winner = players[player_idx];
+					const loser = match_players.find(player => player !== winner);
+
+					loser.showLoserFrame();
+					winner.playWinnerAnimation();
+				};
+
+				for (let player_idx = 0; player_idx < players.length; player_idx += 2) {
+					const match_players = players.slice(player_idx, player_idx + 2);
+
+					const updateMatchStats = () => {
+						competition.computeScoreDifferentials(match_players);
+					};
+
+					match_players.forEach(player => {
+						player.onScore = updateMatchStats;
+					});
+				}
+
+				// expose API into window for debugging
+				window._players = players;
+				window._NTC_API = competition.API;
+
+				window._NTC_API.showRunways = () => {
+					players.forEach(player => {
+						player.dom.runways_box.classList.add('visible');
+					});
+				};
+				window._NTC_API.hideRunways = () => {
+					players.forEach(player => {
+						player.dom.runways_box.classList.remove('visible');
+					});
+				};
 			}
 
-			// expose API into window for debugging
-			window._players = players;
-			window._NTC_API = competition.API;
-
-			window._NTC_API.showRunways = () => {
-				players.forEach(player => {
-					player.dom.runways_box.classList.add('visible');
-				});
-			};
-			window._NTC_API.hideRunways = () => {
-				players.forEach(player => {
-					player.dom.runways_box.classList.remove('visible');
-				});
-			};
+			// hard delay to ensure proper initalization in FF
+			window.addEventListener('load', run);
 		</script>
 	</body>
 </html>

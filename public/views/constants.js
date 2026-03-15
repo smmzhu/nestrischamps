@@ -209,7 +209,7 @@ export function getRunway(start_level, type, lines) {
 
 	try {
 		return targetRunways[type][lines] || 0;
-	} catch (err) {
+	} catch (_err) {
 		console.warn(`Runway unavailable ${[start_level, type, lines]}`);
 		return 0;
 	}

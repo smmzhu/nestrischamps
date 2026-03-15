@@ -32,7 +32,7 @@ const POINT_TYPES = [...CLEAR_TYPES, 'drops'];
 function get(obj, path) {
 	try {
 		return path.split('.').reduce((acc, prop) => acc[prop], obj);
-	} catch (err) {
+	} catch (_err) {
 		return;
 	}
 }

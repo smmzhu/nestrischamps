@@ -25,7 +25,7 @@ export default class ArrayView {
 
 		try {
 			requested_index = parseInt(prop, 10);
-		} catch (err) {}
+		} catch (_err) {}
 
 		if (!isNaN(requested_index)) {
 			return this.at(requested_index);

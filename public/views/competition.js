@@ -1,3 +1,5 @@
+/* global view_meta */
+
 import QueryString from '/js/QueryString.js';
 import Connection from '/js/connection.js';
 import {

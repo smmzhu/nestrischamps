@@ -32,7 +32,7 @@ const dom = {
 const MAX_BEST_OF = 19;
 
 const apiHandler = {
-	get(target, prop, receiver) {
+	get(_target, prop, _receiver) {
 		return function (...args) {
 			connection && connection.send([prop, ...args]);
 		};
@@ -114,7 +114,7 @@ class Player {
 					icon.style.display = 'none';
 					this.dom.vdo_ninja_url.querySelector('svg.success').style.display =
 						'inline';
-				} catch (err) {
+				} catch (_err) {
 					icon.display = 'none';
 					this.dom.vdo_ninja_url.querySelector('svg.failure').style.display =
 						'inline';
@@ -373,7 +373,7 @@ class Player {
 					});
 				});
 
-				peer.on('open', id => {
+				peer.on('open', _id => {
 					console.log(
 						`Connected via peerjs, requesting remoteCalibration on player ${this.idx}`
 					);

@@ -260,24 +260,6 @@ export async function playVideoFromScreenCap(video, fps = 60) {
 	}
 }
 
-export async function playVideoFromConfig(video, frame_rate = 60) {
-	if (!config.device_id) {
-		return;
-	}
-
-	video.classList.remove('is-hidden');
-
-	if (config.device_id === 'window') {
-		await playVideoFromScreenCap(config.frame_rate);
-	} else {
-		await playVideoFromDevice(config.device_id, config.frame_rate);
-	}
-
-	capture_rate
-		.querySelectorAll('.device_only')
-		.forEach(elmt => (elmt.hidden = config.device_id === 'window'));
-}
-
 function checkImageTypeSupport(type) {
 	return new Promise(resolve => {
 		const c = document.createElement('canvas');

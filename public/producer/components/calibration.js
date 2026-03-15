@@ -278,7 +278,7 @@ export class NTC_Producer_Calibration extends NtcComponent {
 		this.#observer.disconnect();
 	}
 
-	#observerCallBack = (entries, observer) => {
+	#observerCallBack = (entries, _observer) => {
 		if (!this.ocr) return; // not ready - happens in remote calibration
 
 		entries.forEach(entry => {
@@ -577,7 +577,7 @@ export class NTC_Producer_Calibration extends NtcComponent {
 		// but we do use the keys to update whatever display settings needs updating so they are in sync with the config
 
 		// 1 update all the crop coodinates in UI
-		for (const [name, task] of Object.entries(remoteConfig.tasks)) {
+		for (const [name, _task] of Object.entries(remoteConfig.tasks)) {
 			const cropControls = this.shadow.getElementById(name);
 			cropControls?.setCoordinates(this.ocr.config.tasks[name].crop);
 		}

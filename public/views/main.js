@@ -1,3 +1,5 @@
+/* global view_meta */
+
 import { peek, getPercent } from '/views/utils.js';
 import QueryString from '/js/QueryString.js';
 import Connection from '/js/connection.js';
@@ -167,7 +169,7 @@ function onMessage(entry) {
 
 let game = null;
 
-function onFrame(event, debug) {
+function onFrame(event, _debug) {
 	if (!game) createGame();
 
 	game.setFrame(event);
@@ -948,6 +950,7 @@ if (QueryString.get('commentate') === '1') {
 }
 
 export function setOnTetris(func) {
+	// eslint-disable-next-line no-func-assign
 	onTetris = func;
 }
 

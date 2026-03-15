@@ -173,10 +173,10 @@ async function startReplay(_showFrame) {
 			? reference_game.frames[0]
 			: reference_game.getFrameAtElapsed(start_ts);
 
-	refs.playhead.onclick = evt => {
+	refs.playhead.onclick = () => {
 		pause();
 	};
-	refs.playhead.onchange = evt => {
+	refs.playhead.onchange = () => {
 		doFrame(parseInt(refs.playhead.value, 10));
 	};
 

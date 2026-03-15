@@ -51,17 +51,57 @@ export default defineConfig([
 	// Frontend config
 	{
 		files: ['public/**'],
-		ignores: ['public/vendor/**'],
+		ignores: [
+			'public/vendor/**',
+			'public/emu/**', // TODO: split better imported files versus NTC-owned files
+			'public/views/stackrabbit/wasmRabbit.js',
+		],
 		extends: compat.extends(
 			'eslint:recommended',
 			'plugin:jest/recommended',
 			'prettier'
 		),
-
 		languageOptions: {
 			globals: {
 				...globals.browser,
 				...globals.commonjs,
+
+				// webGPU support
+				GPUShaderStage: 'readonly',
+				GPUBufferUsage: 'readonly',
+				GPUTextureUsage: 'readonly',
+
+				// emu constants
+				importScripts: 'readonly',
+				KEY_A: 'readonly',
+				KEY_B: 'readonly',
+				KEY_SELECT: 'readonly',
+				KEY_START: 'readonly',
+				KEY_UP: 'readonly',
+				KEY_DOWN: 'readonly',
+				KEY_LEFT: 'readonly',
+				KEY_RIGHT: 'readonly',
+				BUTTON_MAPPING: 'readonly',
+				DIRECTION_MAPPING: 'readonly',
+				process: 'readonly',
+				__dirname: 'readonly',
+
+				// vendor classes
+				Peer: 'readonly',
+				_: 'readonly',
+
+				// NTC constants used in many views... (should be imported explicitly -_-)
+				TILE_ID_TO_NTC_BLOCK_ID: 'readonly',
+				NUM_HIGH_SCORES: 'readonly',
+				DOT_SIZE_TRT: 'readonly',
+				DOT_SIZE_PIECE_DISTRIBUTION: 'readonly',
+				BAR_WIDTH_DROUGHT_GAUGE: 'readonly',
+				BAR_WIDTH_INSTANT_DAS: 'readonly',
+				DOT_SIZE_DAS_N_BOARD: 'readonly',
+				BOARD_HEIGHT_BLOCK_HEIGHT: 'readonly',
+				BOARD_HEIGHT_STAT_BARS_GAP: 'readonly',
+				BOARD_PIXEL_SIZE: 'readonly',
+				PREVIEW_PIXEL_SIZE: 'readonly',
 			},
 
 			ecmaVersion: 2022,

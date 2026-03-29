@@ -387,6 +387,7 @@ export const importUsers = async options => {
 if (
 	!config.get('server.is_public') &&
 	!config.get('server.in_script') &&
+	config.get('local_users.allow_import') &&
 	config.get('local_users.refresh_interval') > 0
 ) {
 	console.log(`starting local users import refresh background process...`);

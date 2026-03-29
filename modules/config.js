@@ -1,5 +1,24 @@
 import convict from 'convict';
 
+// Define a strict boolean loader
+convict.addFormats({
+	'boolean-string': {
+		validate: val => {
+			// This will now see "foo" because coerce passed it through
+			if (typeof val !== 'boolean') {
+				throw new Error('must be a boolean-like value (true, false, 0, 1)');
+			}
+		},
+		coerce: val => {
+			if (/^(true|1)$/i.test(String(val))) return true;
+			if (/^(false|0)$/i.test(String(val))) return false;
+
+			// Return the original value (e.g., "foo") so validate() can kill the process
+			return val;
+		},
+	},
+});
+
 const config = convict({
 	db: {
 		url: {
@@ -59,7 +78,7 @@ const config = convict({
 			},
 			chat_enabled: {
 				doc: 'Enable Twitch Chat integration',
-				format: Boolean,
+				format: 'boolean-string',
 				default: false,
 				env: 'TWITCH_CHAT_ENABLED',
 			},
@@ -74,7 +93,7 @@ const config = convict({
 		},
 		is_public: {
 			doc: 'Flag indicating if the server is running publicly.',
-			format: Boolean,
+			format: 'boolean-string',
 			default: false,
 			env: 'IS_PUBLIC_SERVER',
 		},
@@ -98,7 +117,7 @@ const config = convict({
 		},
 		in_script: {
 			doc: 'Flag indicating if running from a script',
-			format: Boolean,
+			format: 'boolean-string',
 			default: false,
 			env: 'IN_SCRIPT',
 		},
@@ -106,7 +125,7 @@ const config = convict({
 	game: {
 		save_frames: {
 			doc: 'Whether to save game frames or not (0 to disable)',
-			format: Boolean, // Note: FF_SAVE_GAME_FRAMES !== '0' implies if it is '0', it's false, else true
+			format: 'boolean-string', // Note: FF_SAVE_GAME_FRAMES !== '0' implies if it is '0', it's false, else true
 			default: true,
 			env: 'FF_SAVE_GAME_FRAMES',
 		},
@@ -132,7 +151,7 @@ const config = convict({
 	local_users: {
 		allow_import: {
 			doc: 'Allow importing local users from CSV',
-			format: Boolean,
+			format: 'boolean-string',
 			default: false,
 			env: 'LOCAL_USERS_ALLOW_IMPORT',
 		},
@@ -144,7 +163,7 @@ const config = convict({
 		},
 		refresh_interval: {
 			doc: 'Interval (in seconds) to refresh local users',
-			format: Number,
+			format: 'nat',
 			default: 0,
 			env: 'LOCAL_USERS_REFRESH',
 		},

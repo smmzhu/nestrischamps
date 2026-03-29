@@ -155,11 +155,11 @@ class Replay {
 
 		let frame = new Uint8Array(this.frame_buffer.shift());
 
-		if (this.player_idx > 8 && BinaryFrame.getFrameVersion(frame) < 4) {
+		if (this.player_idx >= 8 && BinaryFrame.getFrameVersion(frame) < 4) {
 			// the current frame version supports up to 8 players
 			// so if the replay is older than that and we're trying to replay for a higher player index
 			// we need to update the frame version
-			const data = BinaryFrame.parse(buf);
+			const data = BinaryFrame.parse(frame);
 
 			frame = BinaryFrame.encode(data);
 		}

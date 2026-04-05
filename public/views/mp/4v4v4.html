@@ -422,9 +422,11 @@
 
 						player.onGameOver();
 
-						player.onTetris = function (full_rows) {
-							renderTetrisExplosion(this, full_rows);
-						};
+						if (QueryString.get('explosions') !== '0') {
+							player.onTetris = function (full_rows) {
+								renderTetrisExplosion(this, full_rows);
+							};
+						}
 
 						players.push(player);
 

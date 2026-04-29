@@ -9,7 +9,8 @@
 			}
 
 			#stream_bg {
-				--width: 1920px; /* 100vw */
+				--width: 1920px;
+				/* 100vw */
 
 				container-type: inline-size;
 				container-name: stream_bg;
@@ -24,7 +25,8 @@
 				--player-width: calc(var(--width) / 2 / var(--scale));
 
 				position: absolute;
-				left: 50%; /* note that this will not be a whole number when available width is an odd number */
+				left: 50%;
+				/* note that this will not be a whole number when available width is an odd number */
 				top: 0;
 			}
 
@@ -149,8 +151,10 @@
 			}
 
 			.name .header {
-				font-size: 32.01px; /* sad -_- */
-				line-height: 32px; /* sad -_- */
+				font-size: 32.01px;
+				/* sad -_- */
+				line-height: 32px;
+				/* sad -_- */
 				padding-top: 18px;
 				padding-bottom: 9px;
 				color: white;
@@ -196,9 +200,11 @@
 				0% {
 					background-position: -200% -200%;
 				}
+
 				50% {
 					background-position: 200% 200%;
 				}
+
 				100% {
 					background-position: -200% -200%;
 				}
@@ -273,8 +279,10 @@
 			}
 
 			.drought .header {
-				padding-top: 6px; /* because the bar is thinner than text */
-				padding-bottom: 4px; /* because the bar is thinner than text */
+				padding-top: 6px;
+				/* because the bar is thinner than text */
+				padding-bottom: 4px;
+				/* because the bar is thinner than text */
 			}
 
 			.drought .header img {
@@ -379,6 +387,7 @@
 			}
 		</style>
 	</head>
+
 	<body>
 		<template id="player">
 			<div class="player">
@@ -521,17 +530,17 @@
 			}
 
 			/*
-			const width = window.innerWidth;
-			const height = window.innerHeight;
-			addLogLine(`Viewport size: ${width} x ${height}`);
+		const width = window.innerWidth;
+		const height = window.innerHeight;
+		addLogLine(`Viewport size: ${width} x ${height}`);
 
-			window.addEventListener('resize', () => {
-				addLogLine(
-					`Resized viewport: ${window.innerWidth} x ${window.innerHeight}`
-				);
-				document.querySelector('.match');
-			});
-			/**/
+		window.addEventListener('resize', () => {
+			addLogLine(
+				`Resized viewport: ${window.innerWidth} x ${window.innerHeight}`
+			);
+			document.querySelector('.match');
+		});
+		/**/
 		</script>
 		<script type="module">
 			import '/views/bg.js';

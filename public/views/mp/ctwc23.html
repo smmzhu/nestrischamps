@@ -19,7 +19,8 @@
 				--player-width: calc(var(--width) / 2 / var(--scale));
 
 				position: absolute;
-				left: 50%; /* note that this will not be a whole number when available width is an odd number */
+				left: 50%;
+				/* note that this will not be a whole number when available width is an odd number */
 				top: 0;
 			}
 
@@ -162,8 +163,10 @@
 
 			.name .header {
 				color: white;
-				font-size: 32.01px; /* sad -_- */
-				line-height: 32px; /* sad -_- */
+				font-size: 32.01px;
+				/* sad -_- */
+				line-height: 32px;
+				/* sad -_- */
 				padding-top: 18px;
 				padding-bottom: 9px;
 			}
@@ -208,9 +211,11 @@
 				0% {
 					background-position: -200% -200%;
 				}
+
 				50% {
 					background-position: 200% 200%;
 				}
+
 				100% {
 					background-position: -200% -200%;
 				}
@@ -278,7 +283,8 @@
 			}
 
 			.drought .header {
-				padding-bottom: 4px; /* because the bar is thinner than text */
+				padding-bottom: 4px;
+				/* because the bar is thinner than text */
 			}
 
 			.drought .header img {
@@ -353,6 +359,7 @@
 			.p2 .lines {
 				left: 0;
 			}
+
 			.p2 .next_piece {
 				left: 179px;
 			}
@@ -381,17 +388,17 @@
 			}
 
 			.match.small {
-				--scale: 0.7245042492917847; /* (1080-57)/706/2 */
+				--scale: 0.7245042492917847;
+				/* (1080-57)/706/2 */
 				--score-width: 359px;
-				--score-offset: calc(
-					var(--board-offset) + var(--score-width) - 9px
-				); /* 9px accounts for the border overlap */
-				--name-width: calc(
-					var(--player-width) - var(--score-offset) - 156px
-				); /* 156 represents the width of the flag box, minus the border overlap */
+				--score-offset: calc(var(--board-offset) + var(--score-width) - 9px);
+				/* 9px accounts for the border overlap */
+				--name-width: calc(var(--player-width) - var(--score-offset) - 156px);
+				/* 156 represents the width of the flag box, minus the border overlap */
 				--name-offset: calc(var(--player-width) - 135px);
 				transform: scale(var(--scale));
 			}
+
 			#match2.small {
 				top: 511px;
 			}
@@ -433,9 +440,11 @@
 				top: 0;
 				z-index: 8;
 			}
+
 			.match.small .score {
 				z-index: 7;
 			}
+
 			.match.small .hearts {
 				bottom: unset;
 				top: 477px;
@@ -488,6 +497,7 @@
 				z-index: 6;
 				top: 0;
 			}
+
 			.match.small .name {
 				--offset: var(--score-offset);
 				width: var(--name-width);
@@ -496,6 +506,7 @@
 			.match.small .flag {
 				--offset: var(--name-offset);
 			}
+
 			.match.small .player_vid {
 				top: 96px;
 				height: 609px;
@@ -515,6 +526,7 @@
 					z-index: 7;
 					width: calc(var(--player-width) - var(--offset) - 30px);
 				}
+
 				.match.small .flag {
 					--offset: var(--score-offset);
 					top: 91px;
@@ -523,9 +535,8 @@
 				}
 
 				.heartpos3 .match.small .hearts {
-					--offset: calc(
-						var(--score-offset) + 64px
-					); /* accounts for flag width */
+					--offset: calc(var(--score-offset) + 64px);
+					/* accounts for flag width */
 				}
 			}
 
@@ -559,6 +570,7 @@
 			</style>
 		</template>
 	</head>
+
 	<body>
 		<template id="curtain_0">
 			<div class="custom_curtain">
@@ -818,17 +830,17 @@
 			}
 
 			/*
-			const width = window.innerWidth;
-			const height = window.innerHeight;
-			addLogLine(`Viewport size: ${width} x ${height}`);
+		const width = window.innerWidth;
+		const height = window.innerHeight;
+		addLogLine(`Viewport size: ${width} x ${height}`);
 
-			window.addEventListener('resize', () => {
-				addLogLine(
-					`Resized viewport: ${window.innerWidth} x ${window.innerHeight}`
-				);
-				document.querySelector('.match');
-			});
-			/**/
+		window.addEventListener('resize', () => {
+			addLogLine(
+				`Resized viewport: ${window.innerWidth} x ${window.innerHeight}`
+			);
+			document.querySelector('.match');
+		});
+		/**/
 		</script>
 		<script type="module">
 			import '/views/bg.js';

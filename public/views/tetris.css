@@ -9,7 +9,8 @@
 }
 
 body {
-	--border-size: 15; /* should rename to box-border-size */
+	--border-size: 15;
+	/* should rename to box-border-size */
 }
 
 html,
@@ -67,6 +68,7 @@ td {
 	from {
 		opacity: 0;
 	}
+
 	to {
 		opacity: 1;
 	}
@@ -76,6 +78,7 @@ td {
 	from {
 		opacity: 1;
 	}
+
 	to {
 		opacity: 0;
 	}
@@ -87,6 +90,7 @@ td {
 		opacity: 1;
 		filter: brightness(1) blur(0px);
 	}
+
 	to {
 		visibility: hidden;
 		opacity: 0;

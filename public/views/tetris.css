@@ -11,6 +11,7 @@
 body {
 	--border-size: 15;
 	/* should rename to box-border-size */
+	--tdiff-anim: 0.2s ease-out;
 }
 
 html,

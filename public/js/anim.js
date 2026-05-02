@@ -1,34 +1,43 @@
 // Penner easing
 // http://robertpenner.com/easing/
 
-export function linear(t, b, c, d) {
+function edgeWrapper(fn) {
+	return (t, b, c, d, ...args) => {
+		if (t <= 0) return b;
+		if (t >= d) return b + c;
+
+		return fn(t, b, c, d, ...args);
+	};
+}
+
+export const linear = edgeWrapper((t, b, c, d) => {
 	return b + (c * t) / d;
-}
+});
 
-export function easeOutQuart(t, b, c, d) {
+export const easeOutQuart = edgeWrapper((t, b, c, d) => {
 	return -c * ((t = t / d - 1) * t * t * t - 1) + b;
-}
+});
 
-export function easeOutQuad(t, b, c, d) {
+export const easeOutQuad = edgeWrapper((t, b, c, d) => {
 	return -c * (t /= d) * (t - 2) + b;
-}
+});
 
-export function easeInQuad(t, b, c, d) {
+export const easeInQuad = edgeWrapper((t, b, c, d) => {
 	return c * (t /= d) * t + b;
-}
+});
 
-export function easeInQuint(t, b, c, d) {
+export const easeInQuint = edgeWrapper((t, b, c, d) => {
 	return c * (t /= d) * t * t * t * t + b;
-}
+});
 
-export function easeInOutBack(t, b, c, d, s) {
+export const easeInOutBack = edgeWrapper((t, b, c, d, s = 1.70158) => {
 	if (s == undefined) s = 1.70158;
 	if ((t /= d / 2) < 1)
 		return (c / 2) * (t * t * (((s *= 1.525) + 1) * t - s)) + b;
 	return (c / 2) * ((t -= 2) * t * (((s *= 1.525) + 1) * t + s) + 2) + b;
-}
+});
 
-export function easeOutElastic(t, b, c, d) {
+export const easeOutElastic = edgeWrapper(function easeOutElastic(t, b, c, d) {
 	let s;
 	let p = 0;
 	let a = c;
@@ -49,7 +58,7 @@ export function easeOutElastic(t, b, c, d) {
 		c +
 		b
 	);
-}
+});
 
 // other useful animation-related functions
 

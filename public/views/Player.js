@@ -614,10 +614,8 @@ export default class Player extends EventTarget {
 
 		const step = () => {
 			const elapsed = Date.now() - start;
-			const ratio = Math.min(elapsed / duration, 1);
-
-			const posOffset = easeOutQuad(ratio, 0, 1, 1);
-			const opacity = easeInQuad(ratio, 1, -1, 1);
+			const posOffset = easeOutQuad(elapsed, 0, 1, duration);
+			const opacity = easeInQuad(elapsed, 1, -1, duration);
 
 			inc_el.style.transform = `translate(-50%, calc(-50% - ${posOffset}em))`;
 			inc_el.style.opacity = opacity;
@@ -688,9 +686,12 @@ export default class Player extends EventTarget {
 
 		const step = () => {
 			const elapsed = Date.now() - start;
-			const ratio = Math.min(elapsed / duration, 1);
-
-			const top = easeOutQuart(ratio, -this.bg_height, this.bg_height, 1);
+			const top = easeOutQuart(
+				elapsed,
+				-this.bg_height,
+				this.bg_height,
+				duration
+			);
 
 			this.curtain_container.style.top = `${top}px`;
 
@@ -834,10 +835,9 @@ export default class Player extends EventTarget {
 			// Extended flash then fade
 			const step = () => {
 				const elapsed = Date.now() - start;
-				const ratio = Math.min(elapsed / duration, 1);
 
 				this.field_bg.style.background = whiteToTransparentGradient
-					.getColorAt(easeInQuad(ratio, 0, 1, 1))
+					.getColorAt(easeInQuad(elapsed, 0, 1, duration))
 					.toRGBAString();
 
 				if (elapsed <= duration) {
@@ -884,12 +884,11 @@ export default class Player extends EventTarget {
 			// Fade in-out swipe
 			const step = () => {
 				const elapsed = Date.now() - start;
-				const ratio = Math.min(elapsed / duration, 1);
 
 				const props = {
-					top: `${easeOutQuad(ratio, 50, -50, 1)}%`,
-					height: `${easeOutQuad(ratio, 0, 100, 1)}%`,
-					opacity: `${easeInQuint(ratio, 1, -1, 1)}`,
+					top: `${easeOutQuad(elapsed, 50, -50, duration)}%`,
+					height: `${easeOutQuad(elapsed, 0, 100, duration)}%`,
+					opacity: `${easeInQuint(elapsed, 1, -1, duration)}`,
 				};
 
 				Object.assign(this.field_bg_inner.style, props);

@@ -26,7 +26,7 @@ git checkout main
 cat setup/db.sql | psql "${DB_URL}"
 
 # install nodejs - see documentation https://github.com/nodesource/distributions#installation-instructions-deb
-NODE_MAJOR=22
+NODE_MAJOR=24
 curl -fsSL https://deb.nodesource.com/setup_$NODE_MAJOR.x | sudo -E bash -
 sudo apt install -y nodejs
 

@@ -15,11 +15,14 @@ export class Player extends EventTarget {
 	#peer;
 	supportsRemoteCalibration = false;
 
-	constructor(config, num = null) {
+	constructor(config, num = null, options = {}) {
 		super();
 
 		this.num = num;
 		this.config = config;
+		this.connectionPath = options.connectionPath || null;
+		this.getFrameCTime = options.getFrameCTime || null;
+		this.enablePeer = options.enablePeer !== false;
 
 		this.#startTime = Date.now();
 		this.#lastFrame = { field: [] };
@@ -56,6 +59,14 @@ export class Player extends EventTarget {
 				this.dispatchEvent(new CustomEvent('drop_player'));
 			},
 
+			scoreRecorded: (userId, scoreId) => {
+				this.dispatchEvent(
+					new CustomEvent('score_recorded', {
+						detail: { userId, scoreId },
+					})
+				);
+			},
+
 			setVdoNinjaURL: () => {},
 		};
 	}
@@ -72,7 +83,7 @@ export class Player extends EventTarget {
 
 		localData.game_type =
 			this.config.game_type ?? BinaryFrame.GAME_TYPE.CLASSIC;
-		localData.ctime = Date.now() - this.#startTime;
+		localData.ctime = this.#getCTime();
 
 		// delete data fields which are never meant to be sent over the wire
 		delete localData.color1;
@@ -130,7 +141,13 @@ export class Player extends EventTarget {
 			connUrlParams.set('_remote_calibration', 1);
 		}
 
-		if (this.num === null) {
+		if (this.connectionPath) {
+			const url = new URL(location);
+			url.protocol = url.protocol.match(/^https/i) ? 'wss:' : 'ws:';
+			url.pathname = this.connectionPath;
+
+			this.#connection = new Connection(url.toString(), connUrlParams);
+		} else if (this.num === null) {
 			this.#connection = new Connection(null, connUrlParams);
 		} else {
 			// multiviewer mode, we connect by static player secret
@@ -177,7 +194,20 @@ export class Player extends EventTarget {
 
 		this.#connection.onResume = this.resetNotice;
 
+		this.#connection.onOpen = () => {
+			this.dispatchEvent(new Event('connection_open'));
+		};
+
 		this.#connection.onInit = () => {
+			if (!this.enablePeer) {
+				this.dispatchEvent(
+					new CustomEvent('connection_init', {
+						detail: { id: this.#connection.id },
+					})
+				);
+				return;
+			}
+
 			if (this.#peer) {
 				this.#peer.removeAllListeners();
 				this.#peer.destroy();
@@ -193,9 +223,25 @@ export class Player extends EventTarget {
 				this.#peer.retryTO = clearTimeout(this.#peer.retryTO); // there should only be one retry scheduled
 				// this.#peer.retryTO = setTimeout(startSharingVideoFeed, 1500); // we assume this will succeed at some point?? 😰😅
 			});
+
+			this.dispatchEvent(
+				new CustomEvent('connection_init', {
+					detail: { id: this.#connection.id },
+				})
+			);
 		};
 
 		return this.#connection;
+	}
+
+	#getCTime() {
+		const ctime = this.getFrameCTime?.();
+
+		if (Number.isFinite(ctime)) {
+			return Math.max(0, Math.round(ctime));
+		}
+
+		return Date.now() - this.#startTime;
 	}
 
 	getPeer() {
@@ -214,5 +260,14 @@ export class Player extends EventTarget {
 
 	sendVdoNinjaUrl = url => {
 		this.#connection?.send(['setVdoNinjaURL', url]);
+	};
+
+	sendCommand = (command, ...args) => {
+		this.#connection?.send([command, ...args]);
+	};
+
+	closeConnection = () => {
+		this.#connection?.close();
+		this.#connection = null;
 	};
 }

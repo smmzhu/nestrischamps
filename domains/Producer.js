@@ -81,6 +81,13 @@ class Producer extends EventEmitter {
 		}
 	}
 
+	abortGame() {
+		if (this.game) {
+			this.game.abort();
+			this.game = null;
+		}
+	}
+
 	kick(reason) {
 		if (this.connection) {
 			this.connection.kick(reason);
@@ -102,6 +109,18 @@ class Producer extends EventEmitter {
 	}
 
 	_handleMessage(message) {
+		if (Array.isArray(message)) {
+			switch (message[0]) {
+				case 'finishGame':
+					this.endGame();
+					return;
+
+				case 'abortGame':
+					this.abortGame();
+					return;
+			}
+		}
+
 		if (!this.game) {
 			this.setGame();
 		}

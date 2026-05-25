@@ -49,6 +49,7 @@ let playing = false,
 	showFrame,
 	play_timeout,
 	stackRabbitWorker = null,
+	stackRabbitRecommendationsPromise = null,
 	srabbit_input_speed = (() => {
 		const value = QueryString.get('srabbit_input_speed');
 		return /^\d+(_5)?$/.test(value) && value in STACKRABBIT_INPUT_TIMELINES
@@ -152,7 +153,7 @@ async function startReplay(_showFrame) {
 
 	games = games_res.map(res => res.game);
 
-	computeStackRabbitRecommendations();
+	stackRabbitRecommendationsPromise = computeStackRabbitRecommendations();
 
 	// sort by duration descending to find the longest game
 	reference_game = [...games].sort((a, b) => b.duration - a.duration)[0];
@@ -192,6 +193,7 @@ async function startReplay(_showFrame) {
 	refs.slower.onclick = slower;
 	refs.faster.onclick = faster;
 	refs.getlink.onclick = getLink;
+	refs.moveanalysis.onclick = copyReplayMoveAnalysis;
 
 	if (autoplay) play();
 }
@@ -225,6 +227,7 @@ function addReplayControl() {
 		['nextframe', 'Frame >'],
 		['nextpiece', 'Piece >>'],
 		['nextclear', 'Clear >>'],
+		['moveanalysis', 'Copy Move Data'],
 		['getlink', 'Get Link'],
 	].forEach(([id, text]) => {
 		const button = document.createElement('button');
@@ -338,33 +341,36 @@ function getPrevByType(type) {
 	};
 }
 
-let gameIdx = 0,
-	pieceEvtIdx = -1;
-function computeStackRabbitRecommendations() {
+async function computeStackRabbitRecommendations() {
 	const maxPieceEvtIdx = Math.max(
 		...games.map(g => peek(g.frames).pieces.length)
 	);
 
-	async function getNextRecommendation() {
-		if (gameIdx === 0) {
-			if (++pieceEvtIdx >= maxPieceEvtIdx) return;
+	for (let pieceEvtIdx = 0; pieceEvtIdx < maxPieceEvtIdx; pieceEvtIdx++) {
+		for (const game of games) {
+			const piece_evts = peek(game.frames).pieces;
+
+			if (pieceEvtIdx >= piece_evts.length) continue;
+
+			await ensureStackRabbitRecommendation(piece_evts[pieceEvtIdx]);
 		}
+	}
+}
 
-		const game = games[gameIdx];
-		gameIdx = (gameIdx + 1) % games.length;
-
-		const piece_evts = peek(game.frames).pieces;
-		if (pieceEvtIdx >= piece_evts.length) {
-			getNextRecommendation();
-			return;
-		}
-
-		await askStackRabbit(piece_evts[pieceEvtIdx]);
-
-		getNextRecommendation();
+async function ensureStackRabbitRecommendation(piece_evt) {
+	if (Array.isArray(piece_evt.recommendation)) {
+		return piece_evt.recommendation;
 	}
 
-	getNextRecommendation();
+	if (piece_evt.recommendationPromise) {
+		return piece_evt.recommendationPromise;
+	}
+
+	piece_evt.recommendationPromise = askStackRabbit(piece_evt).finally(() => {
+		delete piece_evt.recommendationPromise;
+	});
+
+	return piece_evt.recommendationPromise;
 }
 
 async function askStackRabbit(piece_evt) {
@@ -383,12 +389,56 @@ async function askStackRabbit(piece_evt) {
 
 	const then = Date.now();
 	try {
-		piece_evt.recommendation = await stackRabbitWorker.rpc('getMove', params);
+		const recommendation = await stackRabbitWorker.rpc('getMove', params);
+		piece_evt.recommendation = recommendation;
 		console.log(
 			`Computed StackRabbit recommendation in ${Date.now() - then}ms.`
 		);
+
+		return recommendation;
 	} catch (err) {
 		console.warn(`Unable to fetch StackRabbit recomendation: ${err.message}`);
+		piece_evt.recommendation = null;
+		return null;
+	}
+}
+
+function getReplayMoveAnalysis() {
+	return reference_game.pieces.map(piece_evt => ({
+		board: piece_evt.field.map(cell => (cell ? 1 : 0)).join(''),
+		move: Array.isArray(piece_evt.recommendation)
+			? [...piece_evt.recommendation]
+			: null,
+	}));
+}
+
+async function copyReplayMoveAnalysis() {
+	const originalText = refs.moveanalysis.innerText;
+
+	refs.moveanalysis.disabled = true;
+	refs.moveanalysis.innerText = 'Computing...';
+
+	try {
+		await stackRabbitRecommendationsPromise;
+
+		const data = getReplayMoveAnalysis();
+		window.replayMoveAnalysis = data;
+		console.log('Replay move analysis data', data);
+
+		await navigator.clipboard.writeText(JSON.stringify(data));
+
+		refs.moveanalysis.innerText = `Copied ${data.length} Moves`;
+		setTimeout(() => {
+			refs.moveanalysis.innerText = originalText;
+		}, 2000);
+	} catch (err) {
+		console.error(err);
+		refs.moveanalysis.innerText = 'Copy Failed';
+		setTimeout(() => {
+			refs.moveanalysis.innerText = originalText;
+		}, 2000);
+	} finally {
+		refs.moveanalysis.disabled = false;
 	}
 }
 

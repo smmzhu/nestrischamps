@@ -81,6 +81,11 @@ class Game {
 		}
 	}
 
+	abort() {
+		this.over = true;
+		this.frame_stream?.end();
+	}
+
 	setFrame(frame) {
 		const data = BinaryFrame.parse(frame);
 
@@ -99,6 +104,8 @@ class Game {
 
 			this.gameid = data.gameid;
 			this.start_ts = Date.now();
+			this.start_ctime = data.ctime;
+			this.last_ctime = data.ctime;
 			this.start_level = data.level;
 
 			this.num_blocks = this._getNumBlocks(data); // assume correct...
@@ -140,6 +147,7 @@ class Game {
 			return;
 		}
 
+		this.last_ctime = data.ctime;
 		this.saveFrame(frame);
 
 		const cur_num_blocks = this._getNumBlocks(data);
@@ -472,7 +480,7 @@ class Game {
 			lines: this.data.lines,
 			num_droughts: this.num_droughts,
 			max_drought: this.max_drought,
-			duration: (this.end_ts || Date.now()) - this.start_ts,
+			duration: this.getDuration(),
 			transition: this.transition,
 			clears: this.clears.join(''),
 			pieces: this.pieces.join(''),
@@ -485,6 +493,18 @@ class Game {
 
 			competition: this.competition,
 		};
+	}
+
+	getDuration() {
+		if (
+			Number.isFinite(this.start_ctime) &&
+			Number.isFinite(this.last_ctime) &&
+			this.last_ctime >= this.start_ctime
+		) {
+			return this.last_ctime - this.start_ctime;
+		}
+
+		return (this.end_ts || Date.now()) - this.start_ts;
 	}
 
 	saveFrame(frame) {

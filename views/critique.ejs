@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<%- include('partials/gtm_head') %>
+	<title>NestrisChamps: video ingest</title>
+	<link rel="stylesheet" href="/vendor/bulma.1.0.4.min.css">
+	<style>
+		.navbar-item img {
+			max-height: 2.5rem;
+		}
+
+		#video_mount video {
+			display: block;
+			max-height: 55vh;
+			max-width: 100%;
+			background: #111;
+		}
+
+		#frame_data {
+			display: grid;
+			grid-template-columns: max-content 1fr;
+			gap: 0.35rem 1rem;
+		}
+
+		#frame_data dt {
+			font-weight: bold;
+			text-transform: capitalize;
+		}
+
+		#frame_data dd {
+			font-family: monospace;
+			margin: 0;
+		}
+
+		#result_links {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+	</style>
+</head>
+<body><%- include('partials/gtm_body') %>
+<%- include('header'); %>
+
+<section class="section">
+	<div class="container">
+		<div class="level">
+			<div class="level-left">
+				<div>
+					<h1 class="title is-1">Video Ingest</h1>
+					<p class="subtitle">Parse a local gameplay video into your score table.</p>
+				</div>
+			</div>
+		</div>
+
+		<div id="config_warning" class="notification is-warning" hidden>
+			OCR calibration is required. Open <a href="/room/producer">producer setup</a>, calibrate this video layout, then return here.
+		</div>
+
+		<div id="ingest_status" class="notification is-info" hidden></div>
+
+		<div class="box">
+			<div class="field">
+				<label class="label" for="video_file">Video file</label>
+				<div class="control">
+					<input id="video_file" class="input" type="file" accept="video/*">
+				</div>
+				<p id="video_meta" class="help"></p>
+			</div>
+
+			<div class="field">
+				<label class="label" for="parse_speed">Parse speed</label>
+				<div class="control">
+					<div class="select">
+						<select id="parse_speed">
+							<option value="1">1x</option>
+							<option value="2" selected>2x</option>
+							<option value="4">4x</option>
+							<option value="8">8x</option>
+						</select>
+					</div>
+				</div>
+			</div>
+
+			<div class="field is-grouped">
+				<div class="control">
+					<button id="parse_video" class="button is-primary" disabled>Parse</button>
+				</div>
+				<div class="control">
+					<button id="abort_video" class="button is-danger is-light" disabled>Abort</button>
+				</div>
+			</div>
+
+			<progress id="ingest_progress" class="progress is-primary" value="0" max="100">0%</progress>
+			<p id="progress_label" class="help"></p>
+		</div>
+
+		<div class="columns">
+			<div class="column is-two-thirds">
+				<div id="video_mount"></div>
+			</div>
+			<div class="column">
+				<h2 class="title is-4">Frame Data</h2>
+				<dl id="frame_data"></dl>
+
+				<div id="ingest_result" class="mt-5" hidden>
+					<h2 class="title is-4">Recorded</h2>
+					<div id="result_links"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<script type="module" src="/producer/video-ingest.js"></script>
+</body>
+</html>

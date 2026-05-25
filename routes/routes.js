@@ -202,6 +202,17 @@ router.get(
 	}
 );
 
+router.get(
+	'/critique',
+	middlewares.assertSession,
+	middlewares.checkToken,
+	(req, res) => {
+		res.render('critique', {
+			secret: req.session.user.secret,
+		});
+	}
+);
+
 function getAge(dob) {
 	const now = new Date();
 	const today_str = now.toISOString().slice(0, 10);

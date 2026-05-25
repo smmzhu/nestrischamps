@@ -145,4 +145,34 @@ describe('BaseGame', () => {
 
 		expect(game.over).toBe(true);
 	});
+
+	it('should tolerate a clear before any piece event is detected', () => {
+		const startFrame = {
+			gameid: 1,
+			ctime: 1000,
+			game_type: BinaryFrame.GAME_TYPE.CLASSIC,
+			level: 18,
+			lines: 0,
+			score: 0,
+			field: Array(200).fill(0),
+		};
+		game.setFrame(startFrame);
+
+		const clearFrame = {
+			gameid: 1,
+			ctime: 2000,
+			game_type: BinaryFrame.GAME_TYPE.CLASSIC,
+			level: 18,
+			lines: 4,
+			score: 1200 * 19,
+			field: Array(200).fill(0),
+		};
+
+		expect(() => {
+			game.setFrame(clearFrame);
+			game.setFrame(clearFrame);
+		}).not.toThrow();
+
+		expect(game.clears.at(-1).cleared).toBe(4);
+	});
 });

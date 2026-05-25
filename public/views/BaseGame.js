@@ -696,7 +696,13 @@ export default class BaseGame {
 
 		// record the fact that the last piece caused a clear event
 		// warning: this assume order; score/clear events MUST ALWAYS BE processed before checking pieces
-		peek(this.pieces).clear = evt;
+		const last_piece = peek(this.pieces);
+
+		if (last_piece) {
+			last_piece.clear = evt;
+		} else {
+			console.warn('Line clear recorded before any piece event');
+		}
 	}
 
 	_checkPiece(data) {

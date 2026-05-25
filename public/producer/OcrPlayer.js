@@ -29,8 +29,12 @@ export class OcrPlayer extends Player {
 	#conn = null;
 	supportsRemoteCalibration = true;
 
-	constructor(config, num = null) {
-		super(config, num);
+	constructor(config, num = null, options = {}) {
+		super(config, num, options);
+
+		if (options.remoteCalibration === false) {
+			this.supportsRemoteCalibration = false;
+		}
 
 		this.gameTracker = new GameTracker(config);
 		this.gameTracker.addEventListener('frame', this.handleFrame);
@@ -118,6 +122,7 @@ export class OcrPlayer extends Player {
 				});
 				this.connect();
 				this.#ready = true;
+				this.dispatchEvent(new Event('ready'));
 			}
 		);
 	}

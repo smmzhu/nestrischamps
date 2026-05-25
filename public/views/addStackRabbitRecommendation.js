@@ -1,8 +1,8 @@
 // represent the spawn point at top of screen
-const OFFSET_X = 3;
-const OFFSET_Y = -2;
+export const OFFSET_X = 3;
+export const OFFSET_Y = -2;
 
-const ROTATIONS = {
+export const ROTATIONS = {
 	T: [
 		[
 			[0, 0, 0, 0],

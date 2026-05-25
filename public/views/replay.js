@@ -2,6 +2,11 @@ import BaseGame from '/views/BaseGame.js';
 import QueryString from '/js/QueryString.js';
 import BinaryFrame from '/js/BinaryFrame.js';
 import { peek } from '/views/utils.js';
+import {
+	OFFSET_X,
+	OFFSET_Y,
+	ROTATIONS,
+} from '/views/addStackRabbitRecommendation.js';
 
 function noop() {}
 
@@ -403,13 +408,208 @@ async function askStackRabbit(piece_evt) {
 	}
 }
 
-function getReplayMoveAnalysis() {
-	return reference_game.pieces.map(piece_evt => ({
-		board: piece_evt.field.map(cell => (cell ? 1 : 0)).join(''),
-		move: Array.isArray(piece_evt.recommendation)
+function getBoardString(piece_evt) {
+	return piece_evt.field.map(cell => (cell ? 1 : 0)).join('');
+}
+
+function getBoardRows(board) {
+	return Array(20)
+		.fill()
+		.map((_, row_idx) => board.slice(row_idx * 10, row_idx * 10 + 10));
+}
+
+function applyLineClears(board) {
+	const rows = getBoardRows(board);
+	const rows_after_clears = rows.filter(row => !row.every(Boolean));
+	const num_clears = rows.length - rows_after_clears.length;
+
+	return [
+		...Array(num_clears)
+			.fill()
+			.map(() => Array(10).fill(0)),
+		...rows_after_clears,
+	].flat();
+}
+
+function addPlacementToBoard(board, piece, placement) {
+	const [rotation, xshift, yshift] = placement;
+	const shape = ROTATIONS[piece]?.[rotation];
+
+	if (!shape) return null;
+
+	const board_copy = [...board];
+	const offset_x = OFFSET_X + xshift;
+	const offset_y = OFFSET_Y + yshift;
+	let num_blocks = 0;
+
+	for (let y = 0; y < 4; y++) {
+		for (let x = 0; x < 4; x++) {
+			if (!shape[y][x]) continue;
+
+			num_blocks++;
+
+			const target_x = offset_x + x;
+			const target_y = offset_y + y;
+
+			if (target_x < 0 || target_x >= 10 || target_y < 0 || target_y >= 20) {
+				return null;
+			}
+
+			const target_idx = target_y * 10 + target_x;
+
+			if (board_copy[target_idx]) return null;
+
+			board_copy[target_idx] = 1;
+		}
+	}
+
+	if (num_blocks !== 4) return null;
+
+	return board_copy;
+}
+
+function placementHasSupport(board, piece, placement) {
+	const [rotation, xshift, yshift] = placement;
+	const shape = ROTATIONS[piece]?.[rotation];
+	const offset_x = OFFSET_X + xshift;
+	const offset_y = OFFSET_Y + yshift;
+
+	if (!shape) return false;
+
+	for (let y = 0; y < 4; y++) {
+		for (let x = 0; x < 4; x++) {
+			if (!shape[y][x]) continue;
+
+			const target_x = offset_x + x;
+			const target_y = offset_y + y;
+
+			if (target_x < 0 || target_x >= 10 || target_y < 0 || target_y >= 20) {
+				return false;
+			}
+
+			if (shape[y + 1]?.[x]) continue;
+
+			const below_y = target_y + 1;
+
+			if (below_y >= 20 || board[below_y * 10 + target_x]) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+function inferPlayedMove(piece_evt, next_piece_evt) {
+	if (!next_piece_evt) return null;
+
+	const board = piece_evt.field.map(cell => (cell ? 1 : 0));
+	const next_board = getBoardString(next_piece_evt);
+	const rotations = ROTATIONS[piece_evt.piece];
+
+	if (!rotations) return null;
+
+	for (let rotation = 0; rotation < rotations.length; rotation++) {
+		for (let xshift = -6; xshift <= 6; xshift++) {
+			for (let yshift = 0; yshift <= 23; yshift++) {
+				const placement = [rotation, xshift, yshift];
+				if (!placementHasSupport(board, piece_evt.piece, placement)) continue;
+
+				const board_with_piece = addPlacementToBoard(
+					board,
+					piece_evt.piece,
+					placement
+				);
+
+				if (!board_with_piece) continue;
+
+				if (applyLineClears(board_with_piece).join('') === next_board) {
+					return placement;
+				}
+			}
+		}
+	}
+
+	return null;
+}
+
+async function ensureStackRabbitMoveRating(piece_evt, next_piece_evt) {
+	if (!next_piece_evt) return null;
+
+	if (piece_evt.stackRabbitMoveRating) {
+		return piece_evt.stackRabbitMoveRating;
+	}
+
+	if (piece_evt.stackRabbitMoveRatingPromise) {
+		return piece_evt.stackRabbitMoveRatingPromise;
+	}
+
+	piece_evt.stackRabbitMoveRatingPromise = rateStackRabbitMove(
+		piece_evt,
+		next_piece_evt
+	).finally(() => {
+		delete piece_evt.stackRabbitMoveRatingPromise;
+	});
+
+	return piece_evt.stackRabbitMoveRatingPromise;
+}
+
+async function rateStackRabbitMove(piece_evt, next_piece_evt) {
+	const frame = piece_evt.frame;
+
+	const params = {
+		level: frame.raw.level <= 18 ? 18 : frame.raw.level,
+		lines: frame.raw.lines,
+		inputFrameTimeline: STACKRABBIT_INPUT_TIMELINES[srabbit_input_speed],
+		currentPiece: piece_evt.piece,
+		nextPiece: next_piece_evt.piece,
+		board: getBoardString(piece_evt),
+		secondBoard: getBoardString(next_piece_evt),
+		playoutLength: srabbit_playout_length,
+	};
+
+	try {
+		const rating = await stackRabbitWorker.rpc('rateMove', params);
+		piece_evt.stackRabbitMoveRating = rating;
+		return rating;
+	} catch (err) {
+		console.warn(`Unable to rate StackRabbit move: ${err.message}`);
+		piece_evt.stackRabbitMoveRating = null;
+		return null;
+	}
+}
+
+async function getReplayMoveAnalysis() {
+	const pieces = reference_game.pieces;
+
+	for (let idx = 0; idx < pieces.length; idx++) {
+		await ensureStackRabbitRecommendation(pieces[idx]);
+		await ensureStackRabbitMoveRating(pieces[idx], pieces[idx + 1]);
+	}
+
+	return pieces.map((piece_evt, idx) => {
+		const next_piece_evt = pieces[idx + 1];
+		const optimalMove = Array.isArray(piece_evt.recommendation)
 			? [...piece_evt.recommendation]
-			: null,
-	}));
+			: null;
+
+		return {
+			index: piece_evt.index ?? idx,
+			board: getBoardString(piece_evt),
+			currentPiece: piece_evt.piece,
+			nextPiece: next_piece_evt?.piece ?? piece_evt.frame.raw.preview,
+			playedMove: inferPlayedMove(piece_evt, next_piece_evt),
+			playedScore:
+				piece_evt.stackRabbitMoveRating?.playerMoveNoAdjustment ?? null,
+			playedAdjustedScore:
+				piece_evt.stackRabbitMoveRating?.playerMoveAfterAdjustment ?? null,
+			optimalMove,
+			optimalScore:
+				piece_evt.stackRabbitMoveRating?.bestMoveNoAdjustment ?? null,
+			optimalAdjustedScore:
+				piece_evt.stackRabbitMoveRating?.bestMoveAfterAdjustment ?? null,
+		};
+	});
 }
 
 async function copyReplayMoveAnalysis() {
@@ -421,7 +621,7 @@ async function copyReplayMoveAnalysis() {
 	try {
 		await stackRabbitRecommendationsPromise;
 
-		const data = getReplayMoveAnalysis();
+		const data = await getReplayMoveAnalysis();
 		window.replayMoveAnalysis = data;
 		console.log('Replay move analysis data', data);
 
